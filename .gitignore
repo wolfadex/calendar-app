@@ -1,8 +1,8 @@
-dist
-!dist/index.html
-
 # elm
 elm-stuff
+node_modules
+public/dist
+src/Spa/Generated
 
 # macOS
 .DS_Store

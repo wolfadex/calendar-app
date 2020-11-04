@@ -1,0 +1,8 @@
+dist
+!dist/index.html
+
+# elm
+elm-stuff
+
+# macOS
+.DS_Store

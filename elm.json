@@ -16,7 +16,9 @@
             "justinmimbs/date": "3.2.1",
             "justinmimbs/time-extra": "1.1.0",
             "justinmimbs/timezone-data": "3.0.3",
-            "mdgriffith/elm-ui": "1.1.8"
+            "krisajenkins/remotedata": "6.0.1",
+            "mdgriffith/elm-ui": "1.1.8",
+            "ohanhi/remotedata-http": "4.0.0"
         },
         "indirect": {
             "elm/bytes": "1.0.8",

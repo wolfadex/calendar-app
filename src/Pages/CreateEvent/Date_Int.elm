@@ -1,5 +1,6 @@
 module Pages.CreateEvent.Date_Int exposing (Model, Msg, Params, page)
 
+import Api.Event as Event
 import Browser.Navigation as Nav
 import Element exposing (..)
 import Form.Field exposing (Field)
@@ -38,7 +39,7 @@ type alias Params =
 type alias Model =
     { date : Posix
     , name : Field String
-    , customerNotes : Field String
+    , customerNote : Field String
     , createRequest : WebData ()
     , navKey : Nav.Key
     }
@@ -57,7 +58,7 @@ init : Url Params -> ( Model, Cmd Msg )
 init { params, key } =
     ( { date = Time.millisToPosix params.date
       , name = Form.Field.init { value = "", parser = parseName }
-      , customerNotes = Form.Field.init { value = "", parser = Ok }
+      , customerNote = Form.Field.init { value = "", parser = Ok }
       , createRequest = NotAsked
       , navKey = key
       }
@@ -101,20 +102,30 @@ updateHelper msg model =
             )
 
         GotCustomerNotes newCustomerNotes ->
-            ( { model | customerNotes = Form.Field.update newCustomerNotes model.customerNotes }
+            ( { model | customerNote = Form.Field.update newCustomerNotes model.customerNote }
             , Cmd.none
             )
 
         CreateEvent ->
-            ( { model | createRequest = Loading }
-            , RemoteData.Http.post
-                "/api/event"
-                CreateResponse
-                decodeCreateRequest
-                ([]
-                    |> Json.Encode.object
-                )
-            )
+            let
+                eventResult =
+                    Event.parse
+                        { name = Form.Field.toRaw model.name
+                        , customerNote = Form.Field.toRaw model.customerNote
+                        }
+            in
+            case eventResult of
+                Ok event ->
+                    ( { model | createRequest = Loading }
+                    , RemoteData.Http.post
+                        "/api/event"
+                        CreateResponse
+                        decodeCreateRequest
+                        (Event.encodeNew event)
+                    )
+
+                Err err ->
+                    Debug.todo "handle event parse error"
 
         CreateResponse response ->
             ( { model | createRequest = response }
@@ -148,7 +159,7 @@ view model =
             [ model.name
                 |> Form.Field.toActual
                 |> resultToErrorMaybe
-            , model.customerNotes
+            , model.customerNote
                 |> Form.Field.toActual
                 |> resultToErrorMaybe
             ]
@@ -167,7 +178,7 @@ view model =
             , Gui.Form.Field.multiline
                 { label = text "Customer Notes"
                 , onChange = GotCustomerNotes
-                , value = model.customerNotes
+                , value = model.customerNote
                 }
             , row
                 [ width fill ]

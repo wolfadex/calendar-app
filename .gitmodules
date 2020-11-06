@@ -1,0 +1,3 @@
+[submodule "dependencies/elm-server"]
+	path = dependencies/elm-server
+	url = git@github.com:wolfadex/elm-server.git

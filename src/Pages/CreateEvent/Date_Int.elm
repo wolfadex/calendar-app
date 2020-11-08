@@ -1,6 +1,6 @@
 module Pages.CreateEvent.Date_Int exposing (Model, Msg, Params, page)
 
-import Api.Event as Event
+import Api.Event as Event exposing (Event)
 import Browser.Navigation as Nav
 import Element exposing (..)
 import Form.Field exposing (Field)
@@ -16,6 +16,7 @@ import Spa.Generated.Route as Route
 import Spa.Page as Page exposing (Page)
 import Spa.Url exposing (Url)
 import Time exposing (Posix)
+import Update.Pipeline as Up
 
 
 page : Page Params Model Msg
@@ -45,20 +46,11 @@ type alias Model =
     }
 
 
-parseName : String -> Result String String
-parseName raw =
-    if String.isEmpty raw then
-        Err "A name is required"
-
-    else
-        Ok raw
-
-
 init : Url Params -> ( Model, Cmd Msg )
 init { params, key } =
     ( { date = Time.millisToPosix params.date
-      , name = Form.Field.init { value = "", parser = parseName }
-      , customerNote = Form.Field.init { value = "", parser = Ok }
+      , name = Form.Field.init { value = "", parser = Event.parseName }
+      , customerNote = Form.Field.init { value = "", parser = Event.parseCustomerNote }
       , createRequest = NotAsked
       , navKey = key
       }
@@ -71,10 +63,10 @@ init { params, key } =
 
 
 type Msg
-    = GotName String
-    | GotCustomerNotes String
-    | CreateEvent
+    = CreateEvent
     | CreateResponse (WebData ())
+    | GotName String
+    | GotCustomerNotes String
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -97,24 +89,13 @@ updateHelper : Msg -> Model -> ( Model, Cmd Msg )
 updateHelper msg model =
     case msg of
         GotName newName ->
-            ( { model | name = Form.Field.update newName model.name }
-            , Cmd.none
-            )
+            Up.save { model | name = Form.Field.update newName model.name }
 
         GotCustomerNotes newCustomerNotes ->
-            ( { model | customerNote = Form.Field.update newCustomerNotes model.customerNote }
-            , Cmd.none
-            )
+            Up.save { model | customerNote = Form.Field.update newCustomerNotes model.customerNote }
 
         CreateEvent ->
-            let
-                eventResult =
-                    Event.parse
-                        { name = Form.Field.toRaw model.name
-                        , customerNote = Form.Field.toRaw model.customerNote
-                        }
-            in
-            case eventResult of
+            case Event.parse model of
                 Ok event ->
                     ( { model | createRequest = Loading }
                     , RemoteData.Http.post
@@ -125,7 +106,7 @@ updateHelper msg model =
                     )
 
                 Err err ->
-                    Debug.todo "handle event parse error"
+                    Up.save model
 
         CreateResponse response ->
             ( { model | createRequest = response }

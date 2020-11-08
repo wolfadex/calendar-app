@@ -1,20 +1,19 @@
 module Api.Event exposing
-    ( Error(..)
-    , Event
+    ( Event
     , decode
     , decodeNew
     , encode
     , encodeNew
     , parse
+    , parseCustomerNote
+    , parseName
     )
 
+import Form.Field exposing (Field)
+import Html.Attributes exposing (name)
 import Json.Decode exposing (Decoder)
 import Json.Encode exposing (Value)
 import Uuid exposing (Uuid)
-
-
-type Error
-    = NameRequired
 
 
 type Event
@@ -27,13 +26,28 @@ type alias Internal =
     }
 
 
-parse : { name : String, customerNote : String } -> Result Error Event
-parse { name, customerNote } =
+parseName : String -> Result String String
+parseName name =
     if String.isEmpty name then
-        Err NameRequired
+        Err "A customer name is required"
 
     else
-        Ok (Event { name = name, customerNote = customerNote })
+        Ok name
+
+
+parseCustomerNote : String -> Result String String
+parseCustomerNote note =
+    Ok note
+
+
+parse : { r | name : Field String, customerNote : Field String } -> Result String Event
+parse fields =
+    Result.map2
+        (\name customerNote ->
+            Event { name = name, customerNote = customerNote }
+        )
+        (fields.name |> Form.Field.toActual)
+        (fields.customerNote |> Form.Field.toActual)
 
 
 encode : ( Uuid, Event ) -> Value

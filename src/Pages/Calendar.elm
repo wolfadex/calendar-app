@@ -1,5 +1,6 @@
 module Pages.Calendar exposing (Model, Msg, Params, page)
 
+import Api.Event exposing (Event)
 import Element exposing (..)
 import Element.Border as Border
 import Element.Font as Font
@@ -7,6 +8,8 @@ import Element.Input as Input
 import Http
 import Json.Decode exposing (Decoder)
 import Json.Encode exposing (Value)
+import RemoteData exposing (RemoteData(..), WebData)
+import RemoteData.Http
 import Spa.Document exposing (Document)
 import Spa.Generated.Route as Route
 import Spa.Page as Page exposing (Page)
@@ -36,18 +39,19 @@ type alias Params =
 
 
 type Model
-    = Loading
-    | Loaded
+    = LoadingTime
+    | LoadedTime
         { currentTime : Posix
         , viewingTime : Posix
         , timeZone : { name : String, zone : Zone }
+        , events : WebData (List Event)
         }
-    | FailedToLoad TimeZone.Error
+    | FailedToLoadTime TimeZone.Error
 
 
 init : Url Params -> ( Model, Cmd Msg )
 init { params } =
-    ( Loading
+    ( LoadingTime
     , Task.map2
         (\now ( name, zone ) ->
             ( name, zone, now )
@@ -68,45 +72,57 @@ type Msg
     | ShowNextMonth
     | RequestTodayMonth
     | GotTodayMonth Posix
+    | GetEventsResponse (WebData (List Event))
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case ( msg, model ) of
-        ( GotTimeAndZone result, Loading ) ->
+        ( GotTimeAndZone result, LoadingTime ) ->
             case result of
                 Ok ( name, zone, time ) ->
-                    ( Loaded
+                    ( LoadedTime
                         { currentTime = time
                         , viewingTime = time
                         , timeZone = { name = name, zone = zone }
+                        , events = Loading
                         }
-                    , Cmd.none
+                    , RemoteData.Http.get
+                        "/api/event"
+                        GetEventsResponse
+                        -- decodeGetEventsRequest
+                        (Json.Decode.succeed [])
                     )
 
                 Err err ->
-                    ( FailedToLoad err, Cmd.none )
+                    ( FailedToLoadTime err, Cmd.none )
 
-        ( ShowPreviousMonth, Loaded data ) ->
-            ( Loaded
+        ( ShowPreviousMonth, LoadedTime data ) ->
+            ( LoadedTime
                 { data | viewingTime = Time.Extra.add Month -1 data.timeZone.zone data.viewingTime }
             , Cmd.none
             )
 
-        ( ShowNextMonth, Loaded data ) ->
-            ( Loaded
+        ( ShowNextMonth, LoadedTime data ) ->
+            ( LoadedTime
                 { data | viewingTime = Time.Extra.add Month 1 data.timeZone.zone data.viewingTime }
             , Cmd.none
             )
 
-        ( RequestTodayMonth, Loaded _ ) ->
+        ( RequestTodayMonth, LoadedTime _ ) ->
             ( model
             , Task.perform GotTodayMonth Time.now
             )
 
-        ( GotTodayMonth now, Loaded data ) ->
-            ( Loaded
+        ( GotTodayMonth now, LoadedTime data ) ->
+            ( LoadedTime
                 { data | currentTime = now, viewingTime = now }
+            , Cmd.none
+            )
+
+        ( GetEventsResponse response, LoadedTime data ) ->
+            ( LoadedTime
+                { data | events = response }
             , Cmd.none
             )
 
@@ -133,10 +149,10 @@ view model =
 viewBody : Model -> Element Msg
 viewBody model =
     case model of
-        Loading ->
+        LoadingTime ->
             text "Loading..."
 
-        FailedToLoad err ->
+        FailedToLoadTime err ->
             column
                 []
                 [ text "Failed to load with error:"
@@ -148,7 +164,7 @@ viewBody model =
                         text ("No data for zone " ++ name)
                 ]
 
-        Loaded { currentTime, viewingTime, timeZone } ->
+        LoadedTime { currentTime, viewingTime, timeZone } ->
             let
                 { zone } =
                     timeZone

@@ -18,7 +18,8 @@
     "dev:server": "elm-server start src/MainServer.elm",
     "pre-commit": "run-p pre-commit:*",
     "pre-commit:review": "elm-review",
-    "review": "elm-review"
+    "review": "elm-review",
+    "publish-schema": "curl -X POST localhost:8080/admin/schema --data-binary '@database/schema.graphql'"
   },
   "keywords": [],
   "author": "",

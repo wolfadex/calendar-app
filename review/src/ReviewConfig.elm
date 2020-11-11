@@ -13,8 +13,17 @@ when inside the directory containing this file.
 
 import Review.Rule exposing (Rule)
 import NoInvalidRGBValues
+import NoRedundantConcat
+import NoRedundantCons
+import NoUnused.Dependencies
+import NoUnused.Exports
 
 
 config : List Rule
 config =
-    [ NoInvalidRGBValues.rule ]
+    [ NoInvalidRGBValues.rule
+    , NoRedundantConcat.rule
+    , NoRedundantCons.rule
+    , NoUnused.Dependencies.rule
+    -- , NoUnused.Exports.rule
+    ]

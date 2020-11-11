@@ -17,7 +17,8 @@
     "dev:db": "docker run -it -p 8080:8080 dgraph/standalone:master",
     "dev:server": "elm-server start src/MainServer.elm",
     "pre-commit": "run-p pre-commit:*",
-    "pre-commit:review": "elm-review"
+    "pre-commit:review": "elm-review",
+    "review": "elm-review"
   },
   "keywords": [],
   "author": "",

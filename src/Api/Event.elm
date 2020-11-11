@@ -3,6 +3,7 @@ module Api.Event exposing
     , decode
     , decodeDb
     , decodeDbCreate
+    , decodeDbQuery
     , decodeNew
     , encode
     , encodeNew
@@ -117,6 +118,11 @@ decodeDbCreate : Decoder ()
 decodeDbCreate =
     Json.Decode.map (\_ -> ())
         (Json.Decode.at [ "data", "addEvent", "numUids" ] Json.Decode.int)
+
+
+decodeDbQuery : Decoder (List ( Uuid, Event ))
+decodeDbQuery =
+    Json.Decode.at [ "data", "queryEvent" ] (Json.Decode.list decode)
 
 
 decodeNew : Decoder Event

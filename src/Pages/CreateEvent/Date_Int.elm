@@ -64,59 +64,87 @@ init { params, key } =
 
 type Msg
     = CreateEvent
-    | CreateResponse (WebData ())
+    | CreateEventResponse (WebData ())
     | GotName String
     | GotCustomerNotes String
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    case model.createRequest of
-        NotAsked ->
-            updateHelper msg model
-
-        Failure _ ->
-            updateHelper msg model
-
-        Loading ->
-            ( model, Cmd.none )
-
-        Success () ->
-            ( model, Cmd.none )
-
-
-updateHelper : Msg -> Model -> ( Model, Cmd Msg )
-updateHelper msg model =
     case msg of
         GotName newName ->
-            Up.save { model | name = Form.Field.update newName model.name }
+            case model.createRequest of
+                NotAsked ->
+                    updateName newName model
 
-        GotCustomerNotes newCustomerNotes ->
-            Up.save { model | customerNote = Form.Field.update newCustomerNotes model.customerNote }
-
-        CreateEvent ->
-            case Event.parse model of
-                Ok event ->
-                    ( { model | createRequest = Loading }
-                    , RemoteData.Http.post
-                        "/api/event"
-                        CreateResponse
-                        decodeCreateRequest
-                        (Event.encodeNew event)
-                    )
-
-                Err err ->
-                    Up.save model
-
-        CreateResponse response ->
-            ( { model | createRequest = response }
-            , case response of
-                Success () ->
-                    Nav.pushUrl model.navKey (Route.toString Route.Calendar)
+                Failure _ ->
+                    updateName newName model
 
                 _ ->
-                    Cmd.none
+                    Up.save model
+
+        GotCustomerNotes newCustomerNotes ->
+            case model.createRequest of
+                NotAsked ->
+                    updateCustomerNote newCustomerNotes model
+
+                Failure _ ->
+                    updateCustomerNote newCustomerNotes model
+
+                _ ->
+                    Up.save model
+
+        CreateEvent ->
+            case model.createRequest of
+                NotAsked ->
+                    createEvent model
+
+                Failure _ ->
+                    createEvent model
+
+                _ ->
+                    Up.save model
+
+        CreateEventResponse response ->
+            case model.createRequest of
+                Loading ->
+                    ( { model | createRequest = response }
+                    , case response of
+                        Success () ->
+                            Nav.pushUrl model.navKey (Route.toString Route.Calendar)
+
+                        _ ->
+                            Cmd.none
+                    )
+
+                _ ->
+                    Up.save model
+
+
+updateName : String -> Model -> ( Model, Cmd Msg )
+updateName newName model =
+    Up.save { model | name = Form.Field.update newName model.name }
+
+
+updateCustomerNote : String -> Model -> ( Model, Cmd Msg )
+updateCustomerNote newCustomerNotes model =
+    Up.save { model | customerNote = Form.Field.update newCustomerNotes model.customerNote }
+
+
+createEvent : Model -> ( Model, Cmd Msg )
+createEvent model =
+    case Event.parse model of
+        Ok event ->
+            ( { model | createRequest = Loading }
+            , RemoteData.Http.post
+                "/api/event"
+                CreateEventResponse
+                decodeCreateRequest
+                (Event.encodeNew event)
             )
+
+        Err err ->
+            Up.save model
 
 
 decodeCreateRequest : Decoder ()

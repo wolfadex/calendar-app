@@ -2,7 +2,6 @@ module MainServer exposing (main)
 
 import Api
 import Error
-import Html exposing (strong)
 import Iso8601
 import Json.Decode exposing (Decoder)
 import Json.Encode

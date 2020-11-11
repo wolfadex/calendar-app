@@ -1,9 +1,13 @@
 module Api.Event exposing
     ( Event
     , decode
+    , decodeDb
+    , decodeDbCreate
     , decodeNew
     , encode
     , encodeNew
+    , getCustomerNote
+    , getName
     , parse
     , parseCustomerNote
     , parseName
@@ -24,6 +28,16 @@ type alias Internal =
     { name : String
     , customerNote : String
     }
+
+
+getName : Event -> String
+getName (Event { name }) =
+    name
+
+
+getCustomerNote : Event -> String
+getCustomerNote (Event { customerNote }) =
+    customerNote
 
 
 parseName : String -> Result String String
@@ -81,6 +95,28 @@ decode =
         (Json.Decode.field "id" Uuid.decode)
         (Json.Decode.field "name" Json.Decode.string)
         (Json.Decode.field "customerNote" Json.Decode.string)
+
+
+decodeDb : Decoder ( Uuid, Event )
+decodeDb =
+    Json.Decode.map3
+        (\id name customerNote ->
+            ( id
+            , Event
+                { name = name
+                , customerNote = customerNote
+                }
+            )
+        )
+        (Json.Decode.field "id" Uuid.decode)
+        (Json.Decode.field "name" Json.Decode.string)
+        (Json.Decode.field "customerNote" Json.Decode.string)
+
+
+decodeDbCreate : Decoder ()
+decodeDbCreate =
+    Json.Decode.map (\_ -> ())
+        (Json.Decode.at [ "data", "addEvent", "numUids" ] Json.Decode.int)
 
 
 decodeNew : Decoder Event

@@ -1,0 +1,5 @@
+type Event {
+  id: ID!
+  name: String! @search
+  customerNote: String
+}

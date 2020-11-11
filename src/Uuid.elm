@@ -8,11 +8,6 @@ type Uuid
     = Uuid String
 
 
-create : Uuid
-create =
-    Uuid "carl"
-
-
 encode : Uuid -> Value
 encode (Uuid id) =
     Json.Encode.string id

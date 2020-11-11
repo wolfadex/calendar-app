@@ -20,16 +20,18 @@ handler request path =
         [ "event" ] ->
             case Server.getMethod request of
                 Get ->
-                    []
-                        |> Json.Encode.list Event.encode
-                        |> Response.json
-                        |> Server.respond request
+                    Database.query
+                        "queryEvent() { id name customerNote }"
+                        Event.decodeDbQuery
+                        |> Task.mapError (Debug.toString >> Debug.log "db error" >> Error.fromString)
+                        |> Task.map (Json.Encode.list Event.encode)
+                        |> Server.andThen (Response.json >> Server.respond request)
 
                 Post ->
                     case Server.decodeBody Event.decodeNew request of
                         Ok event ->
                             Database.mutate
-                                -- addEvent(input: { name: \"Jerry Berry\", customerNote: \"\" }) { name }
+                                -- addEvent(input: { name: \"Jerry Berry\", customerNote: \"\" }) { numUids }
                                 ("addEvent(input: { name: \""
                                     ++ Event.getName event
                                     ++ "\", customerNote: \""
